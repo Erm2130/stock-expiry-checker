@@ -1,0 +1,480 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>เช็คอายุสินค้า</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --surface2:#F5F7F9; --ink:#14202B; --muted:#566471; --line:#D3DAE1;
+  --accent:#1B4F8F; --accent-ink:#FFFFFF; --head:#FFFFFF;
+  --ok:#17663F; --ok-bg:#E3F3E9;
+  --warn:#6B5000; --warn-bg:#FFEEB0; --warn-line:#E2B600;
+  --bad:#B01E1A; --bad-bg:#FFE0DD; --bad-line:#E4605A;
+  --na:#566471; --na-bg:#E5E9ED;
+  --f-disp:'Prompt','Sarabun',system-ui,sans-serif; --f-body:'Sarabun',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C131B; --surface:#151F2A; --surface2:#1B2733; --ink:#E6ECF2; --muted:#98A6B4; --line:#2A3846;
+  --accent:#6FA8F0; --accent-ink:#0C131B; --head:#111A24;
+  --ok:#6FD3A0; --ok-bg:#12301F;
+  --warn:#F5D56B; --warn-bg:#3A2F08; --warn-line:#8A6D10;
+  --bad:#FF9D97; --bad-bg:#3E1715; --bad-line:#8C2F2B;
+  --na:#98A6B4; --na-bg:#233040; color-scheme:dark}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;padding-block:0 0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--head);z-index:30}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1180px;margin-inline:auto}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--head);border-bottom:1px solid var(--line)}
+.top-in{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px;padding-block:12px 4px}
+.brand h1{font-family:var(--f-disp);font-size:1.35rem;line-height:1.2;margin:0;font-weight:700;letter-spacing:.01em}
+.sync{display:block;font-size:.78rem;color:var(--muted)}
+.datefld{display:flex;flex-direction:column;gap:2px;font-size:.78rem;color:var(--muted)}
+.datefld input{font-size:1rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-height:40px}
+.tabs{display:flex;gap:4px;overflow-x:auto}
+.tab{flex:1 1 0;min-width:max-content;background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;font-family:var(--f-disp);font-weight:600;font-size:.95rem;color:var(--muted)}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+main{padding-block:14px 130px}
+
+.summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pill{display:inline-flex;align-items:baseline;gap:6px;border-radius:999px;padding:4px 12px;font-size:.88rem;font-weight:600;background:var(--na-bg);color:var(--na);white-space:nowrap}
+.pill b{font-family:var(--f-disp);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.search{flex:1 1 220px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:42px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.9rem;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 14px;min-height:40px;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{min-height:34px;padding:4px 10px;font-size:.88rem;font-weight:500}
+.btn.danger{border-color:var(--bad-line);color:var(--bad)}
+.btn.danger.sure{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+
+.auto-hide-wrap{display:flex;align-items:center;gap:8px;font-size:0.95rem;font-weight:500;margin-bottom:14px;padding:8px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--line);width:fit-content;}
+.auto-hide-wrap input{width:18px;height:18px;accent-color:var(--accent);}
+
+.add{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+.add summary{padding:10px 14px;font-family:var(--f-disp);font-weight:600;cursor:pointer;list-style:none}
+.add summary::-webkit-details-marker{display:none}
+.add summary::before{content:"+";display:inline-block;width:1.2em;color:var(--accent);font-weight:700}
+.add[open] summary::before{content:"–"}
+.add-body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.add-line{display:flex;flex-wrap:wrap;gap:8px}
+.add-line input,.add-line select,.fld input,.life input,.cmonths{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-height:42px}
+.add-line input.grow{flex:1 1 260px;min-width:0}
+
+.grp{display:flex;align-items:baseline;gap:10px;font-family:var(--f-disp);font-size:1.02rem;margin:18px 0 8px;font-weight:700}
+.grp small{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:.85rem}
+#list{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;grid-template-columns:1fr 1fr;grid-template-areas:"who who" "mfg exp" "res res" "acts acts"}
+.row.no-exp-row{grid-template-areas:"who who" "mfg mfg" "res res" "acts acts"}
+.who{grid-area:who;min-width:0}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.82rem;color:var(--muted)}
+.tag{font-family:var(--f-disp);font-weight:600;font-size:.72rem;border-radius:4px;padding:1px 6px;background:var(--na-bg);color:var(--na);letter-spacing:.03em}
+.tag.SC{background:#DDEBFA;color:#1B4F8F}.tag.TPS1{background:#E3F1EA;color:#17663F}.tag.TPS2{background:#EEE5F7;color:#5B3A87}
+.nm{margin:3px 0 0;font-size:1.05rem;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.life{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
+.life input{width:72px;min-height:32px;padding:2px 8px;text-align:center;font-variant-numeric:tabular-nums}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--muted);min-width:0}
+.fld.mfg{grid-area:mfg}.fld.exp{grid-area:exp}
+.fld input{width:100%;min-width:0;color:var(--ink);font-variant-numeric:tabular-nums;font-size:1rem}
+.res{grid-area:res;display:flex;flex-direction:column;justify-content:center;gap:0;min-width:0;border-radius:8px;padding:6px 10px;background:var(--surface2)}
+.st-ok .res{background:var(--ok-bg);color:var(--ok)}.st-warn .res{background:rgba(255,255,255,.55);color:var(--warn)}.st-bad .res{background:rgba(255,255,255,.55);color:var(--bad)}.st-na .res{background:var(--na-bg);color:var(--na)}
+.res .days{font-family:var(--f-disp);font-weight:700;font-size:1.2rem;font-variant-numeric:tabular-nums;line-height:1.3}
+.res .sub{font-size:.8rem;font-weight:600}
+.acts{grid-area:acts;display:flex;flex-wrap:wrap;gap:6px}
+@media (min-width:860px){
+  .row{grid-template-columns:minmax(0,1.7fr) 158px 158px 176px auto;grid-template-areas:"who mfg exp res acts";align-items:center}
+  .row.no-exp-row{grid-template-columns:minmax(0,1.7fr) 326px 0px 176px auto;}
+  .acts{flex-direction:column;align-items:stretch}
+}
+
+.hid-head{margin-top:20px}
+.crow{display:grid;gap:6px 12px;grid-template-columns:1fr auto;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.crow .nm{font-size:.95rem;margin:0}
+.crow .line2{grid-column:1/-1;font-size:.86rem;font-variant-numeric:tabular-nums}
+.crow .stt{font-weight:700}
+.crow.st-ok .stt{color:var(--ok)}.crow.st-warn .stt{color:var(--warn)}.crow.st-bad .stt{color:var(--bad)}.crow.st-na .stt{color:var(--na)}
+#hiddenList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+.hist summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:12px 14px;cursor:pointer;list-style:none}
+.hist summary::-webkit-details-marker{display:none}
+.hist .hd{font-family:var(--f-disp);font-weight:700;font-size:1.05rem}
+.hist .hs{font-size:.8rem;color:var(--muted)}
+.hbody{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--surface2);font-weight:600}
+
+.cgrp{padding:10px 14px;font-family:var(--f-disp);font-weight:700;background:var(--surface2);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0}
+.crowc{display:grid;gap:8px 12px;grid-template-columns:auto 1fr auto auto;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface);cursor:grab}
+.crowc:active{cursor:grabbing;background:var(--surface2)}
+.crowc.drag-over{border-top:2px dashed var(--accent)}
+.crowc:last-child{border-bottom:0}
+.drag-handle{color:var(--muted);font-size:1.2rem;cursor:grab;padding:0 4px}
+.crowc .cn{min-width:0}.crowc .cn b{display:block;font-weight:600;overflow-wrap:anywhere}.crowc .cn span{font-size:.8rem;color:var(--muted)}
+.cmonths{width:76px;min-height:36px;text-align:center}
+.cwrap{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+.lead{color:var(--muted);margin:0 0 12px;font-size:.92rem}
+
+.cat-form{background:var(--surface2);padding:14px;border-radius:8px;margin-bottom:16px;border:1px solid var(--line)}
+.cat-form h3{margin:0 0 10px 0;font-size:1.05rem;font-family:var(--f-disp)}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;margin-bottom:10px}
+.cat-grid label{display:flex;flex-direction:column;gap:4px;font-size:0.85rem;color:var(--muted)}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--head);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-in{max-width:1180px;margin-inline:auto;display:flex;align-items:center;gap:12px}
+.prog{flex:1 1 auto;min-width:0}
+.prog-t{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;color:var(--muted)}
+.prog-t b{color:var(--ink);font-family:var(--f-disp);font-variant-numeric:tabular-nums}
+.meter{height:8px;border-radius:99px;background:var(--na-bg);margin-top:5px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 16px;max-width:min(92vw,520px);font-weight:500;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+</style>
+
+<header class="top">
+  <div class="gut">
+    <div class="top-in">
+      <div class="brand"><h1>เช็คอายุสินค้า</h1></div>
+      <label class="datefld" for="checkDate"><span>วันที่ตรวจ</span><input type="date" id="checkDate"></label>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-check" aria-selected="true" data-tab="check">ตรวจสินค้า</button>
+      <button class="tab" role="tab" id="tab-history" aria-selected="false" data-tab="history">ประวัติย้อนหลัง</button>
+      <button class="tab" role="tab" id="tab-catalog" aria-selected="false" data-tab="catalog">รายการสินค้า / อายุ</button>
+    </nav>
+  </div>
+</header>
+
+<main class="gut">
+  <!-- Tab 1: Check -->
+  <section id="view-check">
+    <div class="summary" id="summary"></div>
+    <label class="auto-hide-wrap"><input type="checkbox" id="autoHideCb" checked> ซ่อนรายการที่ตรวจเสร็จแล้วอัตโนมัติ</label>
+    
+    <div class="filters">
+      <input class="search" id="search" type="search" placeholder="ค้นหารหัสหรือชื่อสินค้า">
+      <div class="chips" id="chips"></div>
+    </div>
+    <details class="add" id="addBox">
+      <summary>ค้นหาเพื่อเพิ่มรายการเดิมซ้ำ (เพิ่มล็อต)</summary>
+      <div class="add-body">
+        <div class="add-line">
+          <input class="grow" id="addPick" list="prodList" placeholder="พิมพ์ชื่อหรือรหัส เช่น 1000156" autocomplete="off">
+          <datalist id="prodList"></datalist>
+          <button class="btn pri" id="addBtn" type="button">เพิ่มรายการนี้</button>
+        </div>
+      </div>
+    </details>
+    <div id="list"></div>
+    <div id="hiddenWrap"></div>
+    <div style="margin-top:22px"><button class="btn sm danger" id="resetBtn" type="button">ล้างข้อมูลรอบนี้ เริ่มใหม่</button></div>
+  </section>
+
+  <!-- Tab 2: History -->
+  <section id="view-history" hidden>
+    <p class="lead">การตรวจที่บันทึกไว้ เรียงจากล่าสุด กดที่รายการเพื่อดูรายละเอียด</p>
+    <div id="histList"></div>
+  </section>
+
+  <!-- Tab 3: Catalog -->
+  <section id="view-catalog" hidden>
+    <p class="lead">จัดการรายการสินค้า (เพิ่มใหม่ แก้ไขอายุ หรือลากเพื่อจัดลำดับ)</p>
+    
+    <div class="cat-form">
+      <h3>+ เพิ่มสินค้ารายการใหม่</h3>
+      <div class="cat-grid">
+        <label>กลุ่ม (หมวดหมู่)<select id="cNewGroup" class="cmonths" style="width:100%"><option value="SC">SC</option><option value="TPS">TPS</option><option value="TPS2">TPS2</option></select></label>
+        <label>รหัสสินค้า<input id="cNewCode" type="text" class="cmonths" style="width:100%" placeholder="รหัส"></label>
+        <label>ชื่อสินค้า<input id="cNewName" type="text" class="cmonths" style="width:100%" placeholder="ชื่อสินค้า"></label>
+        <label>อายุ (เดือน) <small>*เว้นว่างถ้าไม่มีวันหมดอายุ</small><input id="cNewMonths" type="number" class="cmonths" style="width:100%" placeholder="-"></label>
+      </div>
+      <button class="btn pri" id="cNewBtn" type="button">เพิ่มสินค้าใหม่ลงในระบบ</button>
+    </div>
+
+    <div class="filters"><input class="search" id="catSearch" type="search" placeholder="ค้นหารหัสหรือชื่อสินค้าเพื่อแก้ไข"><div class="summary" id="catSummary"></div></div>
+    <div id="catList"></div>
+  </section>
+</main>
+
+<footer class="bar" id="bar">
+  <div class="bar-in">
+    <div class="prog"><div class="prog-t"><span id="progLbl"></span><b id="progNum"></b></div><div class="meter"><i id="meter"></i></div></div>
+    <button class="btn" id="newRound" type="button" hidden>เริ่มรอบใหม่</button>
+    <button class="btn pri" id="saveBtn" type="button">บันทึก</button>
+  </div>
+</footer>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// Catalog เริ่มต้น (แก้ไขให้ของที่ไม่มีวันหมดอายุ noExp = true)
+const INITIAL_CATALOG = [
+  // SC
+  {id:'p1',g:'SC',code:'5893485',name:'CLAX BUILD LITE 12A1',months:24,noExp:false},
+  {id:'p2',g:'SC',code:'3729631',name:'CLAX PRE-WASH OSLI 20LT',months:24,noExp:false},
+  {id:'p3',g:'SC',code:'4010115',name:'CLAX RUST 1X20L',months:24,noExp:false},
+  {id:'p4',g:'SC',code:'HH0092990',name:'CLAX SOFT CARE 1x20L',months:12,noExp:false},
+  {id:'p5',g:'SC',code:'HH0092991',name:'CLAX SOFT CARE 1x20L',months:12,noExp:false},
+  {id:'p6',g:'SC',code:'9312786',name:'CLAX 100 SUPER 22A5 1x20L',months:24,noExp:false},
+  {id:'p7',g:'SC',code:'HH0104789',name:'DIVOSAN HYPO VT3 1x20L',months:6,noExp:false},
+  {id:'p8',g:'SC',code:'HH0104790',name:'DIVOSAN HYPO VT3 1x20L',months:6,noExp:false},
+  {id:'p9',g:'SC',code:'101102394',name:'FRESHFOOD KTP75 4X3.75L',months:24,noExp:false},
+  {id:'p10',g:'SC',code:'981562',name:'SUMA J-512 4x5L',months:24,noExp:false},
+  {id:'p11',g:'SC',code:'101100693',name:'SUMA BREAK UP HEAVY DUTY D3.5 4X5L',months:24,noExp:false},
+  {id:'p12',g:'SC',code:'4329',name:'VIREX II 256 1-STEP DIS 2X2.5L',months:24,noExp:false},
+  {id:'p13',g:'SC',code:'5010024',name:'GLANCE 101 4X5L',months:24,noExp:false},
+  {id:'p14',g:'SC',code:'94496154',name:'GOOD SENSE ODOR ELIMINATOR 4X1 GA',months:24,noExp:false},
+  {id:'p15',g:'SC',code:'7010206',name:'SUMA J-512 D4 4x5L',months:24,noExp:false},
+  {id:'p16',g:'SC',code:'T002-L',name:'ชุดป้องกันสารเคมี TYVEJ400',months:null,noExp:true},
+  // TPS (ตัวอย่างบางส่วน)
+  {id:'p17',g:'TPS',code:'1000156',name:'โซดาสิงห์เปลี่ยนขวด (24x400CC)',months:24,noExp:false},
+  {id:'p18',g:'TPS',code:'1005977',name:'วิสกีซิลเวอร์ไนท์ (12x350CC)',months:null,noExp:true},
+  {id:'p19',g:'TPS',code:'1009158',name:'วิสกี้ซิลเวอร์วูล์ฟ 35% (12x350 ml)',months:null,noExp:true},
+  {id:'p20',g:'TPS',code:'1009962',name:'เบียร์ลีโอแคน 2026 (12x490CC)',months:12,noExp:false},
+  // TPS2
+  {id:'p21',g:'TPS2',code:'11311',name:'M-150',months:12,noExp:false},
+  {id:'p22',g:'TPS2',code:'TS00001',name:'กระดาษชำระม้วนใหญ่ หนา 2 ชั้น',months:null,noExp:true},
+  {id:'p23',g:'TPS2',code:'TS00002',name:'กระดาษเช็ดมือ 300 แผ่น',months:null,noExp:true},
+  {id:'p24',g:'TPS2',code:'68338248',name:'ซันไลต์เลม่อน 2x10 ลิตร',months:null,noExp:true},
+];
+
+const ORDER = ['SC','TPS','TPS2'];
+const GROUPS = {SC:'SC', TPS:'TPS', TPS2:'TPS2'};
+
+const $ = (s, r=document) => r.querySelector(s);
+function el(tag, props={}, ...kids){
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(props)){
+    if (k==='class') e.className = v;
+    else if (k==='text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v===true) e.setAttribute(k,'');
+    else if (v!==false && v!=null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()){ if(c) e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+const pad = n => String(n).padStart(2,'0');
+const iso = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+function parse(s){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||''); return m?{y:+m[1],m:+m[2],d:+m[3]}:null; }
+const dim = (y,m) => new Date(Date.UTC(y,m,0)).getUTCDate();
+function validDate(s){ const p=parse(s); return !!p && p.y>=1990 && p.y<=2100; }
+function addMonths(s,k){ const p=parse(s); if(!p) return ''; const t=p.y*12+(p.m-1)+k; const y=Math.floor(t/12), m=t%12+1; return iso(y,m,Math.min(p.d,dim(y,m))); }
+const dayNum = s => { const p=parse(s); return p?Date.UTC(p.y,p.m-1,p.d)/864e5:NaN; };
+const fmt = s => { const p=parse(s); return p?`${pad(p.d)}/${pad(p.m)}/${p.y}`:''; };
+const uid = () => 'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+const LS = { get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}} };
+
+const state = {
+  catalog: [], rows: [], date: iso(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate()), tab: 'check',
+  group: 'ALL', q: '', catQ: '', showHidden: false, savedId: null, history: []
+};
+const pmap = () => new Map(state.catalog.map(p=>[p.id,p]));
+const newRow = pid => ({uid: uid(), pid, mfg:'', exp:'', src:'', hidden:false});
+
+function loadLocal(){
+  const c = LS.get('cat_v2'); state.catalog = (c && c.length) ? c : INITIAL_CATALOG.map(p=>({...p}));
+  const d = LS.get('draft_v2');
+  if (d && d.rows && d.rows.length){ state.rows = d.rows.filter(r=>pmap().has(r.pid)); state.date = d.date; state.savedId = d.savedId; }
+  else { state.rows = state.catalog.map(p=>newRow(p.id)); }
+  state.history = LS.get('hist_v2') || [];
+}
+function saveAll(){ LS.set('cat_v2', state.catalog); LS.set('draft_v2', {date:state.date, rows:state.rows, savedId:state.savedId}); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; setTimeout(()=>t.hidden=true, 3000); }
+
+/* Logic */
+function calc(row){
+  const p = pmap().get(row.pid);
+  if (p.noExp) return {st:'na', d:'ไม่มีวันหมดอายุ (ไม่ต้องระบุ)', s:'ปกติ'};
+  if (!validDate(row.exp)) return {st:'none', d:'กรอกวันผลิต/หมดอายุ', s:''};
+  const days = dayNum(row.exp) - dayNum(state.date);
+  if (days < 0) return {st:'bad', d:`หมดอายุแล้ว ${Math.abs(days)} วัน`, s:'หมดอายุ'};
+  if (days === 0) return {st:'bad', d:'หมดอายุวันนี้', s:'หมดอายุ'};
+  if (days <= 60) return {st:'warn', d:`เหลือ ${days} วัน`, s:'ใกล้หมดอายุ'};
+  return {st:'ok', d:`เหลือ ${days} วัน`, s:'ปกติ'};
+}
+const complete = row => {
+  const p = pmap().get(row.pid);
+  return p.noExp ? validDate(row.mfg) : validDate(row.exp);
+};
+
+/* Rendering Rows */
+function buildRow(row, prod){
+  const id = row.uid;
+  const noExp = prod.noExp;
+  const node = el('article', {class:'row ' + (noExp ? 'no-exp-row' : ''), id:'r-'+id, 'data-uid':id},
+    el('div',{class:'who'},
+      el('div',{class:'meta'}, el('span',{class:'tag '+prod.g, text:prod.g}), el('span',{text:prod.code})),
+      el('h3',{class:'nm', text:prod.name}),
+      !noExp ? el('label',{class:'life', for:'m-'+id}, 'อายุ', el('input',{id:'m-'+id, type:'number', min:1, value:prod.months||'', onchange:e=>updateCatMonths(prod.id, e.target.value)}), 'เดือน') : null
+    ),
+    el('label',{class:'fld mfg', for:'f-'+id}, 'วันผลิต', el('input',{id:'f-'+id, type:'date', value:row.mfg, oninput:e=>onDate(row,'mfg',e.target.value)})),
+    !noExp ? el('label',{class:'fld exp', for:'e-'+id}, 'วันหมดอายุ', el('input',{id:'e-'+id, type:'date', value:row.exp, oninput:e=>onDate(row,'exp',e.target.value)})) : null,
+    el('div',{class:'res'}, el('span',{class:'days'}), el('span',{class:'sub'})),
+    el('div',{class:'acts'},
+      el('button',{class:'btn sm', type:'button', text:'+ ล็อตเพิ่ม', onclick:()=>{
+        state.rows.splice(state.rows.indexOf(row)+1, 0, newRow(row.pid)); saveAll(); renderList();
+      }}),
+      el('button',{class:'btn sm danger', type:'button', text:'ลบ', onclick:()=>{ state.rows=state.rows.filter(r=>r!==row); saveAll(); renderList(); }})
+    )
+  );
+  paintRow(node, row, prod);
+  return node;
+}
+function paintRow(node, row, prod){
+  const c = calc(row); node.className = `row st-${c.st} ` + (prod.noExp ? 'no-exp-row' : '');
+  $('.days', node).textContent = c.d; $('.sub', node).textContent = c.s;
+}
+
+let timers = new Map();
+function touch(row){
+  state.savedId = null; saveAll();
+  const n = $('#r-'+row.uid); if(n) paintRow(n, row, pmap().get(row.pid));
+  renderSummary(); renderBar();
+  
+  clearTimeout(timers.get(row.uid));
+  if (complete(row) && $('#autoHideCb').checked){
+    timers.set(row.uid, setTimeout(()=>{
+      row.hidden = true; saveAll(); renderList(); renderSummary(); renderBar();
+    }, 1500));
+  }
+}
+function onDate(row, field, val){
+  row[field] = val; row.src = field;
+  const p = pmap().get(row.pid);
+  if (!p.noExp && p.months && validDate(val)){
+    if (field==='mfg') row.exp = addMonths(val, p.months);
+    else row.mfg = addMonths(val, -p.months);
+    const n = $('#r-'+row.uid); 
+    if(n){ const o = field==='mfg'?'#e-':'#f-'; $(o+row.uid, n).value = row[field==='mfg'?'exp':'mfg']; }
+  }
+  touch(row);
+}
+function updateCatMonths(pid, val){
+  const p = state.catalog.find(x=>x.id===pid); if(!p) return;
+  p.months = parseInt(val,10)||null; p.noExp = !p.months; saveAll();
+  state.rows.forEach(r=>{ if(r.pid===pid && r.src==='mfg' && validDate(r.mfg) && p.months) r.exp = addMonths(r.mfg, p.months); });
+  renderList(); renderCatalog();
+}
+
+function renderList(){
+  const pm = pmap(), list = $('#list'); list.replaceChildren();
+  const vis = state.rows.filter(r=>!r.hidden && (state.group==='ALL' || pm.get(r.pid)?.g===state.group) && (!state.q || (pm.get(r.pid)?.name+pm.get(r.pid)?.code).toLowerCase().includes(state.q.toLowerCase())));
+  
+  let last = null;
+  vis.forEach(r=>{
+    const p = pm.get(r.pid);
+    if (p.g!==last){ last = p.g; list.append(el('h2',{class:'grp'}, GROUPS[p.g])); }
+    list.append(buildRow(r,p));
+  });
+
+  const hid = state.rows.filter(r=>r.hidden);
+  $('#hiddenWrap').replaceChildren();
+  if (hid.length){
+    $('#hiddenWrap').append(el('button',{class:'btn', style:'margin-top:10px', text:`แสดงรายการที่ซ่อนไว้ (${hid.length})`, onclick:()=>{
+      state.showHidden = !state.showHidden; renderList();
+    }}));
+    if (state.showHidden){
+      const hb = el('div',{id:'hiddenList'});
+      hid.forEach(r=>{
+        const p = pm.get(r.pid), c = calc(r);
+        hb.append(el('div',{class:'crow st-'+c.st}, 
+          el('h3',{class:'nm'}, p.name, ' ', el('span',{class:'tag '+p.g, text:p.g})),
+          el('button',{class:'btn sm', text:'แก้ไข', onclick:()=>{ r.hidden=false; saveAll(); renderList(); }}),
+          el('div',{class:'line2'}, p.noExp ? `ผลิต ${fmt(r.mfg)}` : `หมดอายุ ${fmt(r.exp)} · `, el('span',{class:'stt', text:c.d}))
+        ));
+      });
+      $('#hiddenWrap').append(hb);
+    }
+  }
+}
+
+function renderSummary(){
+  const pm = pmap();
+  $('#chips').replaceChildren(['ALL',...ORDER].map(g=>{
+    const cnt = state.rows.filter(r=>!r.hidden && (g==='ALL'||pm.get(r.pid)?.g===g)).length;
+    return el('button',{class:'chip', 'aria-pressed':String(state.group===g), text:`${g==='ALL'?'ทั้งหมด':g} (${cnt})`, onclick:()=>{state.group=g;renderList();}});
+  }));
+}
+function renderBar(){
+  const done = state.rows.filter(complete).length, total = state.rows.length;
+  $('#progLbl').textContent = state.savedId ? 'บันทึกแล้ว' : `เสร็จ ${done}/${total}`;
+  $('#meter').style.width = (total ? done/total*100 : 0)+'%';
+  $('#saveBtn').disabled = total===0 || done<total || state.savedId;
+}
+
+/* Catalog Drag & Drop & Add */
+let dragItem = null;
+function renderCatalog(){
+  const box = $('#catList'); box.replaceChildren();
+  ORDER.forEach(g=>{
+    const items = state.catalog.filter(p=>p.g===g && (!state.catQ || (p.name+p.code).toLowerCase().includes(state.catQ.toLowerCase())));
+    if(!items.length) return;
+    const card = el('div',{class:'card'}, el('div',{class:'cgrp', text:GROUPS[g]}));
+    items.forEach((p, idx)=>{
+      const row = el('div',{class:'crowc', draggable:true, 'data-id':p.id});
+      row.ondragstart = e=>{ dragItem = p; e.dataTransfer.effectAllowed='move'; };
+      row.ondragover = e=>{ e.preventDefault(); row.classList.add('drag-over'); };
+      row.ondragleave = ()=>row.classList.remove('drag-over');
+      row.ondrop = e=>{
+        e.preventDefault(); row.classList.remove('drag-over');
+        if (dragItem && dragItem !== p){
+          const from = state.catalog.indexOf(dragItem), to = state.catalog.indexOf(p);
+          state.catalog.splice(from, 1);
+          state.catalog.splice(to, 0, dragItem);
+          saveAll(); renderCatalog(); renderProdList();
+        }
+      };
+      row.append(
+        el('div',{class:'drag-handle'}, '☰'),
+        el('div',{class:'cn'}, el('b',{text:p.name}), el('span',{text:p.code||'-'})),
+        el('input',{class:'cmonths', type:'number', value:p.months||'', placeholder:'-', onchange:e=>updateCatMonths(p.id, e.target.value)}),
+        el('button',{class:'btn sm danger', text:'ลบ', onclick:()=>{ state.catalog=state.catalog.filter(x=>x.id!==p.id); saveAll(); renderCatalog(); }})
+      );
+      card.append(row);
+    });
+    box.append(card);
+  });
+}
+$('#cNewBtn').onclick = ()=>{
+  const g = $('#cNewGroup').value, code = $('#cNewCode').value.trim(), name = $('#cNewName').value.trim();
+  const m = parseInt($('#cNewMonths').value, 10);
+  if(!name){ toast('กรุณาระบุชื่อสินค้า'); return; }
+  const p = {id:uid(), g, code, name, months:m>0?m:null, noExp:!(m>0)};
+  state.catalog.push(p); saveAll();
+  $('#cNewCode').value = ''; $('#cNewName').value = ''; $('#cNewMonths').value = '';
+  toast('เพิ่มรายการสินค้าใหม่แล้ว'); renderCatalog(); renderProdList();
+};
+
+/* Init & Tabs */
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  state.tab = b.dataset.tab;
+  ['check','history','catalog'].forEach(k=>$('#view-'+k).hidden = k!==state.tab);
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', String(t===b)));
+  $('#bar').hidden = state.tab!=='check';
+  if(state.tab==='catalog') renderCatalog();
+});
+
+function renderProdList(){
+  $('#prodList').replaceChildren(...state.catalog.map(p=>el('option',{value:`${p.code||''} ${p.name}`.trim()})));
+}
+$('#addBtn').onclick = ()=>{
+  const txt = $('#addPick').value.trim().toLowerCase();
+  const p = state.catalog.find(x=>`${x.code} ${x.name}`.toLowerCase().includes(txt));
+  if(p){ state.rows.push(newRow(p.id)); $('#addPick').value=''; saveAll(); renderList(); toast('เพิ่มแล้ว'); }
+};
+
+$('#checkDate').onchange = e=>{ state.date=e.target.value; saveAll(); renderList(); renderBar(); };
+$('#search').oninput = e=>{ state.q=e.target.value; renderList(); };
+$('#catSearch').oninput = e=>{ state.catQ=e.target.value; renderCatalog(); };
+$('#resetBtn').onclick = ()=>{ if(confirm('ล้างที่กรอกทั้งหมด?')){ state.rows = state.catalog.map(p=>newRow(p.id)); state.savedId=null; saveAll(); renderList(); renderSummary(); renderBar(); } };
+
+loadLocal(); renderProdList(); renderList(); renderSummary(); renderBar();
+</script>
+</body></html>
