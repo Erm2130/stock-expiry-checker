@@ -145,9 +145,23 @@ main{padding-block:14px 130px}
 .dtxt.bad{border-color:var(--bad-line);box-shadow:0 0 0 2px var(--bad-bg)}
 .cal{position:relative;flex:0 0 42px;min-height:42px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .calico{width:18px;height:17px;border:2px solid var(--muted);border-top-width:5px;border-radius:3px}
+.crowc.flash{outline:2px solid var(--accent);outline-offset:-2px}
 .cal .dpick{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0;min-height:0}
 .datefld .dfw{width:178px}
 .datefld .dtxt{min-height:40px}
+
+/* pick-up animation while reordering */
+.grip{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.lifted{position:relative;z-index:5;transform:scale(1.03);box-shadow:0 14px 34px rgba(0,0,0,.38);animation:pop .24s cubic-bezier(.2,.9,.3,1.3)}
+.row.lifted{grid-template-columns:1fr;grid-template-areas:"who"}
+.row.lifted .fld,.row.lifted .res,.row.lifted .acts,.row.lifted .life{display:none}
+.drop{animation:drop .32s cubic-bezier(.3,.8,.4,1)}
+@keyframes pop{0%{transform:scale(1)}55%{transform:scale(1.07)}100%{transform:scale(1.03)}}
+@keyframes drop{0%{transform:scale(1.03)}50%{transform:scale(.975)}100%{transform:scale(1)}}
+html.reordering,html.reordering *{user-select:none!important;-webkit-user-select:none!important;-webkit-touch-callout:none!important}
+button.pill{border:0;cursor:pointer}
+.pill[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+@media (prefers-reduced-motion:reduce){.lifted,.drop{animation:none}}
 
 /* hidden / done list */
 .hid-head{margin-top:20px}
@@ -231,30 +245,10 @@ textarea.copybox{width:100%;min-height:120px;background:var(--surface2);border:1
 </header>
 
 <main class="gut">
-  <section class="card newprod" id="newProd" hidden aria-labelledby="npT">
-    <h2 id="npT">เพิ่มสินค้าใหม่</h2>
-    <form id="npForm" novalidate>
-      <div class="npgrid">
-        <label class="npf" for="npCode">รหัสสินค้า<input id="npCode" type="text" autocomplete="off" placeholder="เช่น 1000156"></label>
-        <label class="npf" for="npGroup">หมวดหมู่<input id="npGroup" type="text" list="groupList" autocomplete="off" placeholder="พิมพ์หรือเลือก เช่น SC"></label>
-        <datalist id="groupList"></datalist>
-        <label class="npf wide" for="npName">ชื่อสินค้า<input id="npName" type="text" autocomplete="off" placeholder="เช่น โซดาสิงห์เปลี่ยนขวด (24x400CC)"></label>
-        <label class="npf" for="npMonths">อายุสินค้า (เดือน)<input id="npMonths" type="number" min="1" max="120" inputmode="numeric" placeholder="เช่น 12"></label>
-        <div class="npf"><span>ตัวเลือก</span>
-          <label class="chk" for="npNoExp"><input id="npNoExp" type="checkbox">ไม่มีวันหมดอายุ (กรอกแค่วันผลิต)</label>
-          <label class="chk" for="npAddRow"><input id="npAddRow" type="checkbox" checked>เพิ่มเข้ารายการตรวจครั้งนี้เลย</label>
-        </div>
-      </div>
-      <p class="nperr" id="npErr" role="alert"></p>
-      <div class="npbtns"><button class="btn pri" type="submit">เพิ่มสินค้า</button><button class="btn" type="button" id="npCancel">ยกเลิก</button></div>
-    </form>
-  </section>
-
   <section id="view-check">
     <div class="summary" id="summary"></div>
     <div class="toolbar">
       <label class="switch" for="autoHide"><input type="checkbox" id="autoHide" role="switch"><span class="track" aria-hidden="true"></span><span class="swt">ซ่อนรายการที่กรอกแล้ว</span></label>
-      <button class="btn pri" id="openNew" type="button">+ เพิ่มสินค้าใหม่</button>
     </div>
     <div class="filters">
       <input class="search" id="search" type="search" placeholder="ค้นหารหัสหรือชื่อสินค้า" aria-label="ค้นหาสินค้า">
@@ -287,11 +281,28 @@ textarea.copybox{width:100%;min-height:120px;background:var(--surface2);border:1
   </section>
 
   <section id="view-catalog" hidden>
-    <p class="lead">อายุสินค้าที่ใช้คำนวณ (จำนวนเดือนจากวันผลิตถึงวันหมดอายุ) แก้ตัวเลขได้ ติ๊ก "ไม่มีวันหมดอายุ" สำหรับสินค้าที่ใช้แค่วันผลิต ลากที่จุดด้านซ้ายเพื่อจัดลำดับ (หรือกดลูกศรขึ้นลงเมื่อเลือกจุดนั้น)</p>
+    <p class="lead">อายุสินค้าที่ใช้คำนวณ (จำนวนเดือนจากวันผลิตถึงวันหมดอายุ) แก้ตัวเลขได้ ติ๊ก "ไม่ระบุวันหมดอายุ" สำหรับสินค้าที่ใช้แค่วันผลิต ลากที่จุดด้านซ้ายเพื่อจัดลำดับ (หรือกดลูกศรขึ้นลงเมื่อเลือกจุดนั้น)</p>
     <div class="filters">
       <input class="search" id="catSearch" type="search" placeholder="ค้นหารหัสหรือชื่อสินค้า" aria-label="ค้นหาในรายการสินค้า">
       <button class="btn pri" id="openNew2" type="button">+ เพิ่มสินค้าใหม่</button>
     </div>
+    <section class="card newprod" id="newProd" hidden aria-labelledby="npT">
+      <h2 id="npT">เพิ่มสินค้าใหม่</h2>
+      <form id="npForm" novalidate>
+        <div class="npgrid">
+          <label class="npf" for="npCode">รหัสสินค้า<input id="npCode" type="text" autocomplete="off" placeholder="เช่น 1000156"></label>
+          <label class="npf" for="npGroup">หมวดหมู่<select id="npGroup"></select></label>
+          <label class="npf wide" for="npName">ชื่อสินค้า<input id="npName" type="text" autocomplete="off" placeholder="เช่น โซดาสิงห์เปลี่ยนขวด (24x400CC)"></label>
+          <label class="npf" for="npMonths">อายุสินค้า (เดือน)<input id="npMonths" type="number" min="1" max="120" inputmode="numeric" placeholder="เช่น 12"></label>
+          <div class="npf"><span>ตัวเลือก</span>
+            <label class="chk" for="npNoExp"><input id="npNoExp" type="checkbox">ไม่ระบุวันหมดอายุ (กรอกแค่วันผลิต)</label>
+            <label class="chk" for="npAddRow"><input id="npAddRow" type="checkbox" checked>เพิ่มเข้ารายการตรวจครั้งนี้เลย</label>
+          </div>
+        </div>
+        <p class="nperr" id="npErr" role="alert"></p>
+        <div class="npbtns"><button class="btn pri" type="submit">เพิ่มสินค้า</button><button class="btn" type="button" id="npCancel">ยกเลิก</button></div>
+      </form>
+    </section>
     <div class="summary" id="catSummary"></div>
     <div id="catList"></div>
   </section>
@@ -312,7 +323,7 @@ const GROUPS = {SC:'SC · สิงห์จันทบุรี', TPS1:'TPS1 �
 const KNOWN = ['SC','TPS1','TPS2'];
 const groupLabel = g => GROUPS[g] || g;
 const tagClass = g => 'tag' + (KNOWN.includes(g) ? ' '+g : '');
-const ST_LABEL = {ok:'ปกติ', warn:'ใกล้หมดอายุ', bad:'หมดอายุ', na:'ไม่มีวันหมดอายุ', none:'ยังไม่กรอก'};
+const ST_LABEL = {ok:'ปกติ', warn:'ใกล้หมดอายุ', bad:'หมดอายุ', na:'ไม่ระบุวันหมดอายุ', none:'ยังไม่กรอก'};
 
 /* ---------- helpers ---------- */
 const $ = (s, r=document) => r.querySelector(s);
@@ -347,7 +358,7 @@ const K_CAT='expiry.catalog.v1', K_DRAFT='expiry.draft.v1', K_HIST='expiry.histo
 /* ---------- state ---------- */
 const state = {
   catalog: [], rows: [], date: todayIso(), tab: 'check', autoHide: true,
-  group: 'ALL', q: '', catQ: '', showHidden: false, savedId: null,
+  group: 'ALL', stFilter: 'ALL', q: '', catQ: '', showHidden: false, savedId: null,
   history: [], store: 'checking', open: new Set()
 };
 let DB = null, checkBox = null;
@@ -423,9 +434,9 @@ const complete = row => calc(row).st !== 'none';
 function resultText(row, prod){
   const c = calc(row);
   if (prod.noExp){
-    if (c.st==='none') return {d:'กรอกวันผลิต', s:'สินค้านี้ไม่มีวันหมดอายุ', idle:true};
-    if (c.age < 0) return {d:'วันผลิตอยู่หลังวันที่ตรวจ', s:'ไม่มีวันหมดอายุ'};
-    return {d:`ผลิตมาแล้ว ${c.age.toLocaleString('en-US')} วัน`, s:'ไม่มีวันหมดอายุ'};
+    if (c.st==='none') return {d:'กรอกวันผลิต', s:'สินค้านี้ไม่ระบุวันหมดอายุ', idle:true};
+    if (c.age < 0) return {d:'วันผลิตอยู่หลังวันที่ตรวจ', s:'ไม่ระบุวันหมดอายุ'};
+    return {d:`ผลิตมาแล้ว ${c.age.toLocaleString('en-US')} วัน`, s:'ไม่ระบุวันหมดอายุ'};
   }
   if (c.st==='none'){
     if (validDate(row.mfg) && !(prod.months>0)) return {d:'ใส่อายุสินค้า (เดือน) ก่อน', s:'', idle:true};
@@ -445,26 +456,43 @@ function toast(msg, err=false){
 
 /* ---------- drag to reorder ---------- */
 function enableReorder(grip, node, getSibs, onDone){
+  grip.addEventListener('contextmenu', e=>e.preventDefault());
   grip.addEventListener('pointerdown', e=>{
     if (e.button!==undefined && e.button!==0) return;
     e.preventDefault();
-    const pid = e.pointerId;
-    node.classList.add('dragging');
+    const pid = e.pointerId, root = document.documentElement;
+    root.classList.add('reordering');
+    node.classList.remove('drop'); node.classList.add('dragging','lifted');
+    try { navigator.vibrate && navigator.vibrate(12); } catch(_){}
+    const noSel = ev=>ev.preventDefault();
+    document.addEventListener('selectstart', noSel);
     /* Moving the row in the DOM drops pointer capture, so listen on window instead. */
     const move = ev=>{
       if (ev.pointerId!==pid) return;
       const y = ev.clientY;
-      const sibs = getSibs().filter(n=>n!==node);
-      let before = null;
+      const all = getSibs(), tops = new Map(all.map(s=>[s, s.getBoundingClientRect().top]));
+      const sibs = all.filter(n=>n!==node);
+      let before = null, moved = false;
       for (const s of sibs){ const r = s.getBoundingClientRect(); if (y < r.top + r.height/2){ before = s; break; } }
-      if (before){ if (node.nextElementSibling!==before) before.before(node); }
-      else if (sibs.length){ const last = sibs[sibs.length-1]; if (last.nextElementSibling!==node) last.after(node); }
+      if (before){ if (node.nextElementSibling!==before){ before.before(node); moved = true; } }
+      else if (sibs.length){ const last = sibs[sibs.length-1]; if (last.nextElementSibling!==node){ last.after(node); moved = true; } }
+      if (moved){
+        for (const s of sibs){
+          const dy = tops.get(s) - s.getBoundingClientRect().top;
+          if (Math.abs(dy)>1 && s.animate) s.animate([{transform:`translateY(${dy}px)`},{transform:'none'}], {duration:180, easing:'cubic-bezier(.2,.8,.3,1)'});
+        }
+        try { navigator.vibrate && navigator.vibrate(6); } catch(_){}
+      }
       if (y < 90) window.scrollBy(0,-16); else if (y > window.innerHeight-120) window.scrollBy(0,16);
     };
     const end = ev=>{
       if (ev.pointerId!==pid) return;
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end);
-      node.classList.remove('dragging'); onDone();
+      document.removeEventListener('selectstart', noSel);
+      root.classList.remove('reordering');
+      node.classList.remove('dragging','lifted'); node.classList.add('drop');
+      node.addEventListener('animationend', ()=>node.classList.remove('drop'), {once:true});
+      onDone();
     };
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
   });
@@ -575,12 +603,12 @@ function buildRow(row, prod){
   const id = row.uid;
   const grip = el('button',{class:'grip', type:'button', title:'ลากเพื่อจัดลำดับ', 'aria-label':'ลากเพื่อจัดลำดับ หรือกดลูกศรขึ้นลง: '+prod.name});
   const life = prod.noExp
-    ? el('span',{class:'life', text:'ไม่มีวันหมดอายุ'})
+    ? el('span',{class:'life', text:'ไม่ระบุวันหมดอายุ'})
     : el('label',{class:'life', for:'m-'+id}, 'อายุสินค้า',
         el('input',{id:'m-'+id, type:'number', min:'1', max:'120', inputmode:'numeric', value: prod.months||'', placeholder:'-',
           onchange:e=>setMonths(prod.id, e.target.value)}), 'เดือน');
   const expEl = prod.noExp
-    ? el('div',{class:'fld exp'}, 'วันหมดอายุ', el('div',{class:'noexp', text:'ไม่มี'}))
+    ? el('div',{class:'fld exp'}, 'วันหมดอายุ', el('div',{class:'noexp', text:'ไม่ระบุ'}))
     : el('div',{class:'fld exp'}, el('label',{for:'e-'+id, text:'วันหมดอายุ'}), dateBox({id:'e-'+id, aria:'วันหมดอายุ '+prod.name, onChange:v=>onDate(row,'exp',v)}));
   const node = el('article', {class:'row', id:'r-'+id, 'data-uid':id, 'data-g':prod.g},
     el('div',{class:'who'},
@@ -609,8 +637,8 @@ function delBtn(fn){
 }
 function paintRow(node, row, prod){
   const c = calc(row), r = resultText(row, prod);
-  const drag = node.classList.contains('dragging');
-  node.className = 'row st-'+c.st + (drag?' dragging':'');
+  const keep = ['dragging','lifted','drop'].filter(k=>node.classList.contains(k)).join(' ');
+  node.className = 'row st-'+c.st + (keep ? ' '+keep : '');
   const d = $('.days', node); d.textContent = r.d; d.className = 'days'+(r.idle?' idle':'');
   $('.sub', node).textContent = r.s;
   const life = $('.life input', node);
@@ -652,8 +680,9 @@ function hideRow(u, manual){
   if (!manual && !state.autoHide) return;
   clearTimeout(timers.get(u));
   row.hidden = true; saveDraft();
-  const n = $('#r-'+u); if (n) n.remove();
-  renderListHeads(); renderHidden(); renderSummary(); renderBar();
+  const n = $('#r-'+u);
+  if (n && (state.stFilter==='ALL' || state.stFilter==='none')){ n.remove(); renderListHeads(); }
+  renderHidden(); renderSummary(); renderBar();
 }
 function unhide(row){
   row.hidden = false; saveDraft();
@@ -712,19 +741,18 @@ const labelOf = p => (p.code ? p.code+' · ' : '') + p.name;
 function renderProdList(){
   const dl = $('#prodList'); dl.replaceChildren();
   for (const p of state.catalog) dl.append(el('option',{value: labelOf(p)}));
-  const gl = $('#groupList'); gl.replaceChildren();
-  for (const g of groupOrder()) gl.append(el('option',{value: g}));
 }
 function findProduct(txt){
   const t = txt.trim().toLowerCase(); if (!t) return null;
   return state.catalog.find(p => labelOf(p).toLowerCase()===t || p.name.toLowerCase()===t || (p.code && p.code.toLowerCase()===t)) || null;
 }
-function addProductRow(pid){
+function addProductRow(pid, quiet=false){
   const r = newRow(pid);
   state.rows.push(r); sortRowsByCatalog();
   state.savedId = null; saveDraft();
-  state.group='ALL'; state.q=''; $('#search').value='';
+  if (!quiet){ state.group='ALL'; state.q=''; $('#search').value=''; }
   renderList(); renderSummary(); renderBar();
+  if (quiet) return;
   const n = $('#r-'+r.uid); if (n){ n.scrollIntoView({block:'center'}); $('.fld.mfg input', n).focus({preventScroll:true}); }
 }
 function onAdd(){
@@ -732,18 +760,19 @@ function onAdd(){
   if (!txt){ toast('พิมพ์หรือเลือกสินค้าก่อน', true); return; }
   const p = findProduct(txt);
   if (p){ addProductRow(p.id); $('#addPick').value=''; return; }
-  openNewProd(txt);
-  toast('ไม่พบสินค้านี้ในรายการ กรอกรายละเอียดเพื่อสร้างสินค้าใหม่');
+  toast('ไม่พบสินค้านี้ในรายการ เพิ่มสินค้าใหม่ได้ที่แท็บ "รายการสินค้า / อายุ"', true);
 }
-function openNewProd(name=''){
+function openNewProd(){
   const box = $('#newProd'); box.hidden = false;
-  $('#npName').value = name; $('#npCode').value = ''; $('#npMonths').value = ''; $('#npMonths').disabled = false;
+  const gs = [...KNOWN, ...groupOrder().filter(g=>!KNOWN.includes(g))];
+  $('#npGroup').replaceChildren(...gs.map(g=>el('option',{value:g, text:groupLabel(g)})));
+  $('#npGroup').value = gs[0];
+  $('#npName').value = ''; $('#npCode').value = ''; $('#npMonths').value = ''; $('#npMonths').disabled = false;
   $('#npNoExp').checked = false; $('#npAddRow').checked = true; $('#npErr').textContent = '';
-  $('#npGroup').value = state.group!=='ALL' ? state.group : (groupOrder()[0] || '');
   box.scrollIntoView({block:'start'});
-  (name ? $('#npGroup') : $('#npCode')).focus({preventScroll:true});
+  $('#npCode').focus({preventScroll:true});
 }
-function closeNewProd(){ $('#newProd').hidden = true; }
+function closeNewProd(){ $('#newProd').hidden = true; $('#npForm').reset(); $('#npMonths').disabled = false; $('#npErr').textContent = ''; }
 function submitNewProd(e){
   e.preventDefault();
   const code = $('#npCode').value.trim(), name = $('#npName').value.trim();
@@ -752,7 +781,7 @@ function submitNewProd(e){
   const err = m => { $('#npErr').textContent = m; };
   if (!g) return err('กรอกหมวดหมู่');
   if (!name) return err('กรอกชื่อสินค้า');
-  if (!noExp && !(k>0)) return err('กรอกอายุสินค้า (เดือน) หรือติ๊ก "ไม่มีวันหมดอายุ"');
+  if (!noExp && !(k>0)) return err('กรอกอายุสินค้า (เดือน) หรือติ๊ก "ไม่ระบุวันหมดอายุ"');
   const same = groupOrder().find(x=>x.toLowerCase()===g.toLowerCase()); if (same) g = same;
   if (state.catalog.some(p=>p.g===g && p.name===name && (p.code||'')===code)) return err('มีสินค้านี้ในหมวดนี้แล้ว');
   const p = {id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,4), g, code, name, months: noExp?null:Math.min(k,120), noExp, note:''};
@@ -762,7 +791,9 @@ function submitNewProd(e){
   saveCatalog(); renderProdList(); renderCatalog();
   const addRow = $('#npAddRow').checked;
   closeNewProd();
-  if (addRow) addProductRow(p.id); else renderChips();
+  if (addRow) addProductRow(p.id, true); else renderChips();
+  const node = $('.crowc[data-pid="'+p.id+'"]');
+  if (node){ node.scrollIntoView({block:'center'}); node.classList.add('flash'); setTimeout(()=>node.classList.remove('flash'), 2200); }
   toast(addRow ? 'เพิ่มสินค้าใหม่และใส่ในรายการตรวจแล้ว' : 'เพิ่มสินค้าใหม่ในรายการสินค้าแล้ว');
 }
 
@@ -779,12 +810,12 @@ function renderChips(){
 function renderSummary(){
   const cnt = {ok:0,warn:0,bad:0,na:0,none:0};
   for (const r of state.rows) cnt[calc(r).st]++;
-  const box = $('#summary'); box.replaceChildren(
-    el('span',{class:'pill'}, 'ยังไม่กรอก ', el('b',{text:cnt.none})),
-    el('span',{class:'pill bad'}, 'หมดอายุ ', el('b',{text:cnt.bad})),
-    el('span',{class:'pill warn'}, 'ใกล้หมดอายุ ', el('b',{text:cnt.warn})),
-    el('span',{class:'pill ok'}, 'ปกติ ', el('b',{text:cnt.ok})),
-    cnt.na ? el('span',{class:'pill'}, 'ไม่มีวันหมดอายุ ', el('b',{text:cnt.na})) : null);
+  const mk = (key,label,cls,n)=>el('button',{class:'pill '+cls, type:'button', 'aria-pressed':String(state.stFilter===key),
+    title:'กดเพื่อแสดงเฉพาะรายการนี้ กดซ้ำเพื่อยกเลิก',
+    onclick:()=>{ state.stFilter = state.stFilter===key ? 'ALL' : key; renderSummary(); renderList(); }}, label+' ', el('b',{text:n}));
+  $('#summary').replaceChildren(...[
+    mk('none','ยังไม่กรอก','',cnt.none), mk('bad','หมดอายุ','bad',cnt.bad), mk('warn','ใกล้หมดอายุ','warn',cnt.warn), mk('ok','ปกติ','ok',cnt.ok),
+    (cnt.na || state.stFilter==='na') ? mk('na','ไม่ระบุวันหมดอายุ','',cnt.na) : null].filter(Boolean));
   renderChips();
 }
 function renderListHeads(){
@@ -799,7 +830,8 @@ function renderListHeads(){
 function renderList(){
   const list = $('#list'); list.replaceChildren();
   const pm = pmap();
-  const vis = state.rows.filter(r=>!r.hidden && matchRow(r,pm));
+  const sf = state.stFilter;
+  const vis = state.rows.filter(r=>matchRow(r,pm) && (sf==='ALL' ? !r.hidden : calc(r).st===sf));
   let last = null; const counts = {};
   for (const r of vis){ const g = pm.get(r.pid).g; counts[g] = (counts[g]||0)+1; }
   for (const r of vis){
@@ -809,12 +841,13 @@ function renderList(){
   }
   if (!vis.length){
     const anyLeft = state.rows.some(r=>!r.hidden);
-    list.append(el('div',{class:'empty', text: state.rows.length && !anyLeft ? 'กรอกครบทุกรายการแล้ว กดบันทึกที่ด้านล่างได้เลย' : (state.rows.length ? 'ไม่พบรายการที่ตรงกับการค้นหา' : 'ยังไม่มีรายการ กด "+ เพิ่มสินค้าใหม่" ด้านบน')}));
+    list.append(el('div',{class:'empty', text: sf!=='ALL' ? 'ไม่มีรายการในสถานะนี้' : state.rows.length && !anyLeft ? 'กรอกครบทุกรายการแล้ว กดบันทึกที่ด้านล่างได้เลย' : (state.rows.length ? 'ไม่พบรายการที่ตรงกับการค้นหา' : 'ยังไม่มีรายการ เพิ่มสินค้าได้ที่แท็บ "รายการสินค้า / อายุ"')}));
   }
   renderHidden(); renderChips();
 }
 function renderHidden(){
   const wrap = $('#hiddenWrap'); wrap.replaceChildren();
+  if (state.stFilter!=='ALL') return;
   const pm = pmap();
   const hid = state.rows.filter(r=>r.hidden && pm.has(r.pid));
   if (!hid.length) return;
@@ -1061,7 +1094,7 @@ function buildXlsx(recs){
       validDate(i.exp) ? {v:xserial(i.exp), t:'n', s:xs(st,'date')} : {s:xs(st,'date')},
       {v:i.days, t:'n', s:xs(st,'num')}, {v:ST_LABEL[st]||'', s:xs(st,'text')}]);
   }
-  const sum = [['วันที่ตรวจ','จำนวนรายการ','หมดอายุ','ใกล้หมดอายุ','ปกติ','ไม่มีวันหมดอายุ'].map(H)];
+  const sum = [['วันที่ตรวจ','จำนวนรายการ','หมดอายุ','ใกล้หมดอายุ','ปกติ','ไม่ระบุวันหมดอายุ'].map(H)];
   for (const rec of recs){
     const c = rec.counts || {};
     sum.push([{v:xserial(rec.date), t:'n', s:xs('ok','date')}, {v:rec.total, t:'n', s:xs('ok','num')}, {v:c.bad||0, t:'n', s:xs('ok','num')},
@@ -1147,7 +1180,7 @@ async function buildPdf(recs){
     const d = new Date(rec.savedAt);
     T(M,y+10,`วันที่ตรวจ ${fmt(rec.date)}   ·   บันทึกเมื่อ ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}   ·   ${rec.total} รายการ`,'400 10px','#566471'); y += 17;
     const c = rec.counts || {};
-    T(M,y+10,`หมดอายุ ${c.bad||0}   ·   ใกล้หมดอายุ ${c.warn||0}   ·   ปกติ ${c.ok||0}   ·   ไม่มีวันหมดอายุ ${c.na||0}`,'700 10px','#14202B'); y += 20;
+    T(M,y+10,`หมดอายุ ${c.bad||0}   ·   ใกล้หมดอายุ ${c.warn||0}   ·   ปกติ ${c.ok||0}   ·   ไม่ระบุวันหมดอายุ ${c.na||0}`,'700 10px','#14202B'); y += 20;
     head();
     rec.items.forEach((it, idx)=>{
       const lines = wrapText(mctx, it.name, cols[2].w-8);
@@ -1162,7 +1195,7 @@ async function buildPdf(recs){
       [x] = edge(2); lines.forEach((ln,k)=>T(x,base+k*11.5,ln,f,'#14202B','left'));
       [x,a] = edge(3); T(x,base,it.months??'-',f,'#14202B',a);
       [x,a] = edge(4); T(x,base,fmt(it.mfg)||'-',f,'#14202B',a);
-      [x,a] = edge(5); T(x,base,fmt(it.exp)||(it.st==='na'?'ไม่มี':'-'),f,'#14202B',a);
+      [x,a] = edge(5); T(x,base,fmt(it.exp)||(it.st==='na'?'ไม่ระบุ':'-'),f,'#14202B',a);
       [x,a] = edge(6); T(x,base,it.days==null?'-':it.days,'700 9px',fg,a);
       [x,a] = edge(7); T(x,base,ST_LABEL[it.st]||'','700 9px',fg,a);
       y += h;
@@ -1192,10 +1225,10 @@ function renderCatalog(){
   const list = state.catalog.filter(p=>!q || (p.code||'').toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
   const unk = state.catalog.filter(p=>!p.noExp && !(p.months>0)).length;
   const nox = state.catalog.filter(p=>p.noExp).length;
-  $('#catSummary').replaceChildren(
+  $('#catSummary').replaceChildren(...[
     el('span',{class:'pill'}, 'สินค้าทั้งหมด ', el('b',{text:state.catalog.length})),
-    nox ? el('span',{class:'pill'}, 'ไม่มีวันหมดอายุ ', el('b',{text:nox})) : null,
-    unk ? el('span',{class:'pill warn'}, 'ยังไม่ระบุอายุ ', el('b',{text:unk})) : null);
+    nox ? el('span',{class:'pill'}, 'ไม่ระบุวันหมดอายุ ', el('b',{text:nox})) : null,
+    unk ? el('span',{class:'pill warn'}, 'ยังไม่ระบุอายุ ', el('b',{text:unk})) : null].filter(Boolean));
   for (const g of groupOrder()){
     const items = list.filter(p=>p.g===g); if (!items.length) continue;
     const card = el('div',{class:'card'}, el('div',{class:'cgrp', text:`${groupLabel(g)} (${items.length})`}));
@@ -1208,7 +1241,7 @@ function renderCatalog(){
         el('div',{class:'copt'},
           el('label',{class:'cwrap', for:'cm-'+p.id}, el('input',{class:'cmonths', id:'cm-'+p.id, type:'number', min:'1', max:'120', inputmode:'numeric', value:p.months||'', placeholder:'-', disabled:!!p.noExp, 'aria-label':'อายุสินค้า (เดือน) '+p.name,
             onchange:e=>setMonths(p.id, e.target.value)}), 'เดือน'),
-          el('label',{class:'chk', for:'cx-'+p.id}, el('input',{id:'cx-'+p.id, type:'checkbox', checked:!!p.noExp, onchange:e=>setNoExp(p.id, e.target.checked)}), 'ไม่มีวันหมดอายุ')),
+          el('label',{class:'chk', for:'cx-'+p.id}, el('input',{id:'cx-'+p.id, type:'checkbox', checked:!!p.noExp, onchange:e=>setNoExp(p.id, e.target.checked)}), 'ไม่ระบุวันหมดอายุ')),
         del);
       enableReorder(grip, row, ()=>[...card.querySelectorAll('.crowc')], ()=>onCatalogReordered(card));
       card.append(row);
@@ -1228,6 +1261,7 @@ function removeProduct(p){
 /* ---------- tabs / chrome ---------- */
 function setTab(t){
   state.tab = t;
+  if (t!=='catalog') closeNewProd();
   for (const k of ['check','history','catalog']){
     $('#view-'+k).hidden = k!==t;
     $('#tab-'+k).setAttribute('aria-selected', String(k===t));
@@ -1239,7 +1273,9 @@ function setTab(t){
   window.scrollTo({top:0});
 }
 function renderSync(){
-  $('#sync').textContent = state.store==='db' ? 'ซิงก์ข้ามเครื่อง' : state.store==='local' ? 'เก็บในเครื่องนี้เท่านั้น' : 'กำลังเชื่อมต่อ…';
+  const s = $('#sync');
+  s.textContent = 'SINGHA CHANTHABURI';
+  s.title = state.store==='db' ? 'ซิงก์ข้ามเครื่อง' : state.store==='local' ? 'ข้อมูลเก็บในเครื่องนี้เท่านั้น' : 'กำลังเชื่อมต่อ';
 }
 function newRound(){
   for (const t of timers.values()) clearTimeout(t); timers.clear();
@@ -1285,7 +1321,6 @@ function init(){
   $('#catSearch').addEventListener('input', e=>{ state.catQ = e.target.value; renderCatalog(); });
   $('#addBtn').addEventListener('click', onAdd);
   $('#addPick').addEventListener('keydown', e=>{ if (e.key==='Enter'){ e.preventDefault(); onAdd(); } });
-  $('#openNew').addEventListener('click', ()=>openNewProd());
   $('#openNew2').addEventListener('click', ()=>openNewProd());
   $('#npForm').addEventListener('submit', submitNewProd);
   $('#npCancel').addEventListener('click', closeNewProd);
