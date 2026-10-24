@@ -140,6 +140,15 @@ main{padding-block:14px 130px}
   .acts{flex-direction:column;align-items:stretch}
 }
 
+.dfw{display:flex;gap:6px;align-items:stretch}
+.dfw .dtxt{flex:1 1 auto;width:auto;min-width:0}
+.dtxt.bad{border-color:var(--bad-line);box-shadow:0 0 0 2px var(--bad-bg)}
+.cal{position:relative;flex:0 0 42px;min-height:42px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.calico{width:18px;height:17px;border:2px solid var(--muted);border-top-width:5px;border-radius:3px}
+.cal .dpick{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;margin:0;min-height:0}
+.datefld .dfw{width:178px}
+.datefld .dtxt{min-height:40px}
+
 /* hidden / done list */
 .hid-head{margin-top:20px}
 .crow{display:grid;gap:6px 12px;grid-template-columns:1fr auto;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
@@ -211,7 +220,7 @@ textarea.copybox{width:100%;min-height:120px;background:var(--surface2);border:1
   <div class="gut">
     <div class="top-in">
       <div class="brand"><h1>เช็คอายุสินค้า</h1><span class="sync" id="sync"></span></div>
-      <label class="datefld" for="checkDate"><span>วันที่ตรวจ</span><input type="date" id="checkDate"></label>
+      <div class="datefld"><label for="checkDate">วันที่ตรวจ</label><div id="checkDateHost"></div></div>
     </div>
     <nav class="tabs" role="tablist" aria-label="เมนู">
       <button class="tab" role="tab" id="tab-check" aria-selected="true" data-tab="check">ตรวจสินค้า</button>
@@ -341,7 +350,7 @@ const state = {
   group: 'ALL', q: '', catQ: '', showHidden: false, savedId: null,
   history: [], store: 'checking', open: new Set()
 };
-let DB = null;
+let DB = null, checkBox = null;
 const timers = new Map();
 const pmap = () => new Map(state.catalog.map(p=>[p.id,p]));
 const prodOf = row => pmap().get(row.pid);
@@ -509,6 +518,58 @@ function matchRow(r, pm){
   return !q || (p.code||'').toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
 }
 
+/* ---------- typed date field (dd/mm/yyyy) with calendar button ---------- */
+function maskDate(raw){
+  const d = raw.replace(/\D/g,'').slice(0,8);
+  let o = d.slice(0,2);
+  if (d.length>2) o += '/'+d.slice(2,4);
+  if (d.length>4) o += '/'+d.slice(4);
+  return o;
+}
+function parseTyped(txt){
+  const d = txt.replace(/\D/g,'');
+  if (d.length!==8) return null;
+  const dd = +d.slice(0,2), mm = +d.slice(2,4); let y = +d.slice(4);
+  if (y>=2400 && y<=2600) y -= 543;
+  if (mm<1 || mm>12 || y<1990 || y>2100 || dd<1 || dd>dim(y,mm)) return null;
+  return iso(y,mm,dd);
+}
+function dateBox({id, aria, onChange}){
+  const txt = el('input',{id, class:'dtxt', type:'text', inputmode:'numeric', autocomplete:'off', placeholder:'วว/ดด/ปปปป', maxlength:'10', 'aria-label':aria});
+  const pick = el('input',{type:'date', class:'dpick', tabindex:'-1', 'aria-label':'เลือกจากปฏิทิน: '+aria});
+  const wrap = el('div',{class:'dfw'}, txt, el('span',{class:'cal', title:'เลือกจากปฏิทิน'}, el('span',{class:'calico','aria-hidden':'true'}), pick));
+  let cur = '';
+  const ok = v=>{ txt.classList.remove('bad'); onChange(v); };
+  wrap.setIso = v=>{
+    cur = v || ''; pick.value = validDate(cur) ? cur : '';
+    if (document.activeElement!==txt){ txt.value = fmt(cur); txt.classList.remove('bad'); }
+  };
+  txt.addEventListener('input', ()=>{
+    const t = txt.value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) txt.value = fmt(t);
+    const caret = txt.selectionStart ?? txt.value.length;
+    const digitsBefore = txt.value.slice(0,caret).replace(/\D/g,'').length;
+    const m = maskDate(txt.value);
+    if (m!==txt.value){
+      txt.value = m;
+      let pos = 0, c = 0;
+      while (pos<m.length && c<digitsBefore){ if (/\d/.test(m[pos])) c++; pos++; }
+      try { txt.setSelectionRange(pos,pos); } catch(e){}
+    }
+    if (m===''){ cur = ''; pick.value = ''; ok(''); return; }
+    const v = parseTyped(m);
+    if (v){ cur = v; pick.value = v; ok(v); }
+    else txt.classList.toggle('bad', m.replace(/\D/g,'').length===8);
+  });
+  txt.addEventListener('focus', ()=>setTimeout(()=>{ try{ txt.select(); }catch(e){} }, 0));
+  txt.addEventListener('blur', ()=>{ txt.value = fmt(cur); txt.classList.remove('bad'); });
+  pick.addEventListener('change', ()=>{
+    if (validDate(pick.value)){ cur = pick.value; txt.value = fmt(cur); ok(cur); }
+    else if (!pick.value){ cur = ''; txt.value = ''; ok(''); }
+  });
+  return wrap;
+}
+
 /* ---------- row ---------- */
 function buildRow(row, prod){
   const id = row.uid;
@@ -520,20 +581,18 @@ function buildRow(row, prod){
           onchange:e=>setMonths(prod.id, e.target.value)}), 'เดือน');
   const expEl = prod.noExp
     ? el('div',{class:'fld exp'}, 'วันหมดอายุ', el('div',{class:'noexp', text:'ไม่มี'}))
-    : el('label',{class:'fld exp', for:'e-'+id}, 'วันหมดอายุ', el('input',{id:'e-'+id, type:'date', oninput:e=>onDate(row,'exp',e.target.value)}));
+    : el('div',{class:'fld exp'}, el('label',{for:'e-'+id, text:'วันหมดอายุ'}), dateBox({id:'e-'+id, aria:'วันหมดอายุ '+prod.name, onChange:v=>onDate(row,'exp',v)}));
   const node = el('article', {class:'row', id:'r-'+id, 'data-uid':id, 'data-g':prod.g},
     el('div',{class:'who'},
       el('div',{class:'meta'}, grip, el('span',{class:tagClass(prod.g), text:prod.g}), prod.code && el('span',{text:prod.code})),
       el('h3',{class:'nm', text:prod.name}), life),
-    el('label',{class:'fld mfg', for:'f-'+id}, 'วันผลิต', el('input',{id:'f-'+id, type:'date', oninput:e=>onDate(row,'mfg',e.target.value)})),
+    el('div',{class:'fld mfg'}, el('label',{for:'f-'+id, text:'วันผลิต'}), dateBox({id:'f-'+id, aria:'วันผลิต '+prod.name, onChange:v=>onDate(row,'mfg',v)})),
     expEl,
     el('div',{class:'res'}, el('span',{class:'days'}), el('span',{class:'sub'})),
     el('div',{class:'acts'},
       el('button',{class:'btn sm hbtn', type:'button', text:'ซ่อน', hidden:true, onclick:()=>hideRow(row.uid,true)}),
       el('button',{class:'btn sm', type:'button', text:'+ ล็อตเพิ่ม', onclick:()=>addLot(row)}),
       delBtn(()=>removeRow(row))));
-  $('#f-'+id, node).value = row.mfg || '';
-  const ei = $('#e-'+id, node); if (ei) ei.value = row.exp || '';
   enableReorder(grip, node, ()=>[...$('#list').querySelectorAll('.row')].filter(n=>n.dataset.g===prod.g), onRowsReordered);
   paintRow(node, row, prod);
   return node;
@@ -556,9 +615,8 @@ function paintRow(node, row, prod){
   $('.sub', node).textContent = r.s;
   const life = $('.life input', node);
   if (life) life.classList.toggle('need', validDate(row.mfg) && !(prod.months>0));
-  const f = $('.fld.mfg input', node), e = $('.fld.exp input', node);
-  if (f && document.activeElement!==f && f.value!==(row.mfg||'')) f.value = row.mfg||'';
-  if (e && document.activeElement!==e && e.value!==(row.exp||'')) e.value = row.exp||'';
+  const f = $('.fld.mfg .dfw', node), e = $('.fld.exp .dfw', node);
+  if (f) f.setIso(row.mfg); if (e) e.setIso(row.exp);
   const hb = $('.hbtn', node); if (hb) hb.hidden = c.st==='none';
 }
 function syncRow(row){
@@ -1186,7 +1244,7 @@ function renderSync(){
 function newRound(){
   for (const t of timers.values()) clearTimeout(t); timers.clear();
   state.rows = state.catalog.map(p=>newRow(p.id)); state.date = todayIso(); state.savedId = null; state.showHidden = false;
-  $('#checkDate').value = state.date;
+  checkBox.setIso(state.date);
   saveDraft(); renderAll(); window.scrollTo({top:0});
 }
 function renderAll(){ renderProdList(); renderSummary(); renderList(); renderBar(); renderSync(); }
@@ -1216,12 +1274,12 @@ async function initDb(){
 
 function init(){
   loadLocal();
-  const dt = $('#checkDate'); dt.value = state.date;
-  dt.addEventListener('input', e=>{
-    if (!validDate(e.target.value)) return;
-    state.date = e.target.value; state.savedId = null; saveDraft();
+  checkBox = dateBox({id:'checkDate', aria:'วันที่ตรวจ', onChange:v=>{
+    if (!validDate(v)) return;
+    state.date = v; state.savedId = null; saveDraft();
     renderList(); renderSummary(); renderBar();
-  });
+  }});
+  $('#checkDateHost').append(checkBox); checkBox.setIso(state.date);
   for (const b of document.querySelectorAll('.tab')) b.addEventListener('click', ()=>setTab(b.dataset.tab));
   $('#search').addEventListener('input', e=>{ state.q = e.target.value; renderList(); });
   $('#catSearch').addEventListener('input', e=>{ state.catQ = e.target.value; renderCatalog(); });
